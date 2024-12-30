@@ -27,6 +27,15 @@ private class BlePeripheralDarwin: NSObject, BlePeripheralChannel, CBPeripheralM
     var cbCentrals = [CBCentral]()
     private var charUpdateQueue: [CharacteristicUpdate] = []
     private var isCharUpdateProcessing = false
+  
+    private let operationQueue: OperationQueue = {
+        let queue = OperationQueue()
+        queue.name = "com.navideck.bleCharacteristicUpdate"
+        queue.maxConcurrentOperationCount = 1
+        return queue
+    }()
+
+    private let maxQueueSize = 1000
 
     init(bleCallback: BleCallback) {
         self.bleCallback = bleCallback
@@ -111,20 +120,30 @@ private class BlePeripheralDarwin: NSObject, BlePeripheralChannel, CBPeripheralM
     }
 
     func updateCharacteristic(characteristicId: String, value: FlutterStandardTypedData, deviceId: String?) throws {
+        guard operationQueue.operationCount < maxQueueSize else {
+            throw PigeonError(code: "QueueFull", message: "Update queue is full", details: nil)
+        }
+        
         guard let char: CBMutableCharacteristic = characteristicId.findCharacteristic() else {
             throw PigeonError(code: "NotFound", message: "\(characteristicId) characteristic not found", details: nil)
         }
-
+        
         let central: CBCentral? = deviceId.flatMap { id in
             cbCentrals.first { $0.identifier.uuidString == id }
         }
-
+        
         if deviceId != nil && central == nil {
             throw PigeonError(code: "NotFound", message: "\(deviceId!) device not found", details: nil)
         }
-
-        charUpdateQueue.append(CharacteristicUpdate(characteristic: char, data: value.toData(), central: central))
-        processCharUpdateQueue()
+        
+        let operation = CharacteristicUpdateOperation(
+            peripheralManager: peripheralManager,
+            characteristic: char,
+            data: value.toData(),
+            central: central
+        )
+        
+        operationQueue.addOperation(operation)
     }
 
     private func processCharUpdateQueue() {
@@ -229,6 +248,42 @@ private class BlePeripheralDarwin: NSObject, BlePeripheralChannel, CBPeripheralM
                     self.peripheralManager.respond(to: req, withResult: .requestNotSupported)
                 }
             }
+        }
+    }
+}
+
+private class CharacteristicUpdateOperation: Operation {
+    private let peripheralManager: CBPeripheralManager
+    private let characteristic: CBMutableCharacteristic
+    private let data: Data
+    private let central: CBCentral?
+    private var retryCount = 0
+    private let maxRetries = 3
+    
+    init(peripheralManager: CBPeripheralManager, characteristic: CBMutableCharacteristic, data: Data, central: CBCentral?) {
+        self.peripheralManager = peripheralManager
+        self.characteristic = characteristic
+        self.data = data
+        self.central = central
+        super.init()
+    }
+    
+    override func main() {
+        guard !isCancelled else { return }
+        
+        while retryCount < maxRetries {
+            let success = peripheralManager.updateValue(
+                data,
+                for: characteristic,
+                onSubscribedCentrals: central.map { [$0] }
+            )
+            
+            if success {
+                break
+            }
+            
+            retryCount += 1
+            Thread.sleep(forTimeInterval: 0.1 * Double(retryCount))
         }
     }
 }
