@@ -157,8 +157,7 @@ namespace ble_peripheral
     flutter::EncodableList clients_list = flutter::EncodableList();
     for (auto const &[deviceId, charList] : deviceMap)
     {
-      auto subscribedClient = SubscribedClient(deviceId, charList);
-      clients_list.push_back(flutter::CustomEncodableValue(subscribedClient));
+      clients_list.push_back(flutter::CustomEncodableValue(SubscribedClient(deviceId, charList)));
     }
     return clients_list;
   }
