@@ -190,7 +190,7 @@ private class BlePeripheralDarwin: NSObject, BlePeripheralChannel, CBPeripheralM
         if let index = subscribedCentrals[central]?.firstIndex(of: characteristic) {
             subscribedCentrals[central]?.remove(at: index)
         }
-        // if no more characteristics are subscribed by this central, remove it from the list
+        // If no more characteristics are subscribed by this central, remove it from the list
         if subscribedCentrals[central]?.isEmpty == true {
             subscribedCentrals.removeValue(forKey: central)
         }

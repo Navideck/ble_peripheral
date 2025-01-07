@@ -58,8 +58,8 @@ class BlePeripheral {
   static Future<List<SubscribedClient>> getSubscribedClients() =>
       _platform.getSubscribedClients();
 
-  /// To update the value of a characteristic
-  /// if deviceId is null then the value will be updated to all the devices which are subscribed to it
+  /// Update the value of a characteristic
+  /// If deviceId is null then the value will be published to all the devices which are subscribed to it
   static Future<void> updateCharacteristic({
     required String characteristicId,
     required Uint8List value,
