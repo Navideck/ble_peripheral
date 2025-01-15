@@ -208,17 +208,6 @@ namespace ble_peripheral
         return FlutterError("Already advertising");
       }
 
-      // Advertising with LocalName is not supported
-      // if (local_name != nullptr)
-      // {
-      //   publisher.Advertisement().LocalName(winrt::to_hstring(*local_name));
-      // }
-
-      // Adding Services throws Invalid Args Error..
-      // for (const auto &service : services)
-      // {
-      //   publisher.Advertisement().ServiceUuids().Append(uuid_to_guid(std::get<std::string>(service)));
-      // }
 
       if (manufacturer_data != nullptr)
       {
