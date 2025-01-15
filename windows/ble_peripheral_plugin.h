@@ -83,6 +83,10 @@ namespace ble_peripheral
 
         // BluetoothLe
         Radio bluetoothRadio{nullptr};
+        BluetoothAdapter adapter{nullptr};
+        BluetoothLEAdvertisementPublisher publisher{nullptr};
+
+        void Publisher_StatusChanged(BluetoothLEAdvertisementPublisher const &sender, IInspectable const &args);
 
         winrt::fire_and_forget InitializeAdapter();
         winrt::fire_and_forget AddServiceAsync(const BleService &service);
@@ -94,6 +98,7 @@ namespace ble_peripheral
         RadioState oldRadioState = RadioState::Unknown;
         winrt::event_revoker<IRadio> radioStateChangedRevoker;
         std::string ParseBluetoothClientId(hstring clientId);
+        std::string ParseLEAdvertisementStatus(BluetoothLEAdvertisementPublisherStatus status);
 
         GattCharacteristicObject *FindGattCharacteristicObject(std::string characteristicId);
 
@@ -103,7 +108,6 @@ namespace ble_peripheral
         winrt::fire_and_forget ReadRequestedAsync(GattLocalCharacteristic const &, GattReadRequestedEventArgs args);
         winrt::fire_and_forget WriteRequestedAsync(GattLocalCharacteristic const &, GattWriteRequestedEventArgs args);
         std::string ParseBluetoothError(BluetoothError error);
-        bool AreAllServicesStarted();
 
         // BlePeripheralChannel
         std::optional<FlutterError> Initialize();

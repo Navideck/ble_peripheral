@@ -5,6 +5,8 @@
 - Improve Android connection
 - On Android, `isSupported` will return false if not supported instead of throwing error
 - Fix Windows `updateCharacteristic` API when deviceId is not null
+- Fix Windows `isAdvertising` and `isSupported` APIs
+- Improve Windows `addService` and `startAdvertising` APIs to match other platforms
 - Bump Pigeon Version
 
 ## 2.4.0
