@@ -138,12 +138,14 @@ BleCharacteristic::BleCharacteristic(
   const EncodableList& properties,
   const EncodableList& permissions,
   const EncodableList* descriptors,
-  const std::vector<uint8_t>* value)
+  const std::vector<uint8_t>* value,
+  const int64_t* instance_id)
  : uuid_(uuid),
     properties_(properties),
     permissions_(permissions),
     descriptors_(descriptors ? std::optional<EncodableList>(*descriptors) : std::nullopt),
-    value_(value ? std::optional<std::vector<uint8_t>>(*value) : std::nullopt) {}
+    value_(value ? std::optional<std::vector<uint8_t>>(*value) : std::nullopt),
+    instance_id_(instance_id ? std::optional<int64_t>(*instance_id) : std::nullopt) {}
 
 const std::string& BleCharacteristic::uuid() const {
   return uuid_;
@@ -198,14 +200,28 @@ void BleCharacteristic::set_value(const std::vector<uint8_t>& value_arg) {
 }
 
 
+const int64_t* BleCharacteristic::instance_id() const {
+  return instance_id_ ? &(*instance_id_) : nullptr;
+}
+
+void BleCharacteristic::set_instance_id(const int64_t* value_arg) {
+  instance_id_ = value_arg ? std::optional<int64_t>(*value_arg) : std::nullopt;
+}
+
+void BleCharacteristic::set_instance_id(int64_t value_arg) {
+  instance_id_ = value_arg;
+}
+
+
 EncodableList BleCharacteristic::ToEncodableList() const {
   EncodableList list;
-  list.reserve(5);
+  list.reserve(6);
   list.push_back(EncodableValue(uuid_));
   list.push_back(EncodableValue(properties_));
   list.push_back(EncodableValue(permissions_));
   list.push_back(descriptors_ ? EncodableValue(*descriptors_) : EncodableValue());
   list.push_back(value_ ? EncodableValue(*value_) : EncodableValue());
+  list.push_back(instance_id_ ? EncodableValue(*instance_id_) : EncodableValue());
   return list;
 }
 
@@ -221,6 +237,10 @@ BleCharacteristic BleCharacteristic::FromEncodableList(const EncodableList& list
   auto& encodable_value = list[4];
   if (!encodable_value.IsNull()) {
     decoded.set_value(std::get<std::vector<uint8_t>>(encodable_value));
+  }
+  auto& encodable_instance_id = list[5];
+  if (!encodable_instance_id.IsNull()) {
+    decoded.set_instance_id(std::get<int64_t>(encodable_instance_id));
   }
   return decoded;
 }
@@ -897,7 +917,9 @@ void BlePeripheralChannel::SetUp(
           const auto& value_arg = std::get<std::vector<uint8_t>>(encodable_value_arg);
           const auto& encodable_device_id_arg = args.at(2);
           const auto* device_id_arg = std::get_if<std::string>(&encodable_device_id_arg);
-          std::optional<FlutterError> output = api->UpdateCharacteristic(characteristic_id_arg, value_arg, device_id_arg);
+          const auto& encodable_instance_id_arg = args.at(3);
+          const auto* instance_id_arg = std::get_if<int64_t>(&encodable_instance_id_arg);
+          std::optional<FlutterError> output = api->UpdateCharacteristic(characteristic_id_arg, value_arg, device_id_arg, instance_id_arg);
           if (output.has_value()) {
             reply(WrapError(output.value()));
             return;
@@ -951,6 +973,7 @@ void BleCallback::OnReadRequest(
   const std::string& characteristic_id_arg,
   int64_t offset_arg,
   const std::vector<uint8_t>* value_arg,
+  const int64_t* instance_id_arg,
   std::function<void(const ReadRequestResult*)>&& on_success,
   std::function<void(const FlutterError&)>&& on_error) {
   const std::string channel_name = "dev.flutter.pigeon.ble_peripheral.BleCallback.onReadRequest" + message_channel_suffix_;
@@ -960,6 +983,7 @@ void BleCallback::OnReadRequest(
     EncodableValue(characteristic_id_arg),
     EncodableValue(offset_arg),
     value_arg ? EncodableValue(*value_arg) : EncodableValue(),
+    instance_id_arg ? EncodableValue(*instance_id_arg) : EncodableValue(),
   });
   channel.Send(encoded_api_arguments, [channel_name, on_success = std::move(on_success), on_error = std::move(on_error)](const uint8_t* reply, size_t reply_size) {
     std::unique_ptr<EncodableValue> response = GetCodec().DecodeMessage(reply, reply_size);
@@ -983,6 +1007,7 @@ void BleCallback::OnWriteRequest(
   const std::string& characteristic_id_arg,
   int64_t offset_arg,
   const std::vector<uint8_t>* value_arg,
+  const int64_t* instance_id_arg,
   std::function<void(const WriteRequestResult*)>&& on_success,
   std::function<void(const FlutterError&)>&& on_error) {
   const std::string channel_name = "dev.flutter.pigeon.ble_peripheral.BleCallback.onWriteRequest" + message_channel_suffix_;
@@ -992,6 +1017,7 @@ void BleCallback::OnWriteRequest(
     EncodableValue(characteristic_id_arg),
     EncodableValue(offset_arg),
     value_arg ? EncodableValue(*value_arg) : EncodableValue(),
+    instance_id_arg ? EncodableValue(*instance_id_arg) : EncodableValue(),
   });
   channel.Send(encoded_api_arguments, [channel_name, on_success = std::move(on_success), on_error = std::move(on_error)](const uint8_t* reply, size_t reply_size) {
     std::unique_ptr<EncodableValue> response = GetCodec().DecodeMessage(reply, reply_size);
@@ -1015,6 +1041,7 @@ void BleCallback::OnCharacteristicSubscriptionChange(
   const std::string& characteristic_id_arg,
   bool is_subscribed_arg,
   const std::string* name_arg,
+  const int64_t* instance_id_arg,
   std::function<void(void)>&& on_success,
   std::function<void(const FlutterError&)>&& on_error) {
   const std::string channel_name = "dev.flutter.pigeon.ble_peripheral.BleCallback.onCharacteristicSubscriptionChange" + message_channel_suffix_;
@@ -1024,6 +1051,7 @@ void BleCallback::OnCharacteristicSubscriptionChange(
     EncodableValue(characteristic_id_arg),
     EncodableValue(is_subscribed_arg),
     name_arg ? EncodableValue(*name_arg) : EncodableValue(),
+    instance_id_arg ? EncodableValue(*instance_id_arg) : EncodableValue(),
   });
   channel.Send(encoded_api_arguments, [channel_name, on_success = std::move(on_success), on_error = std::move(on_error)](const uint8_t* reply, size_t reply_size) {
     std::unique_ptr<EncodableValue> response = GetCodec().DecodeMessage(reply, reply_size);

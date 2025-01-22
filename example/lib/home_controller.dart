@@ -56,6 +56,7 @@ class HomeController extends GetxController {
       String characteristicId,
       bool isSubscribed,
       String? name,
+      int? instanceId,
     ) {
       Get.log(
         "onCharacteristicSubscriptionChange: $deviceId : $characteristicId $isSubscribed Name: $name",
@@ -84,13 +85,13 @@ class HomeController extends GetxController {
     });
 
     BlePeripheral.setReadRequestCallback(
-        (deviceId, characteristicId, offset, value) {
+        (deviceId, characteristicId, offset, value, instanceId) {
       Get.log("ReadRequest: $deviceId $characteristicId : $offset : $value");
       return ReadRequestResult(value: utf8.encode("Hello World"));
     });
 
     BlePeripheral.setWriteRequestCallback(
-        (deviceId, characteristicId, offset, value) {
+        (deviceId, characteristicId, offset, value, instanceId) {
       Get.log("WriteRequest: $deviceId $characteristicId : $offset : $value");
       // return WriteRequestResult(status: 144);
       return null;

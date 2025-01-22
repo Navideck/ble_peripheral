@@ -117,6 +117,7 @@ class BleCharacteristic {
     required this.permissions,
     this.descriptors,
     this.value,
+    this.instanceId,
   });
 
   String uuid;
@@ -129,6 +130,8 @@ class BleCharacteristic {
 
   Uint8List? value;
 
+  int? instanceId;
+
   Object encode() {
     return <Object?>[
       uuid,
@@ -136,6 +139,7 @@ class BleCharacteristic {
       permissions,
       descriptors,
       value,
+      instanceId,
     ];
   }
 
@@ -147,6 +151,7 @@ class BleCharacteristic {
       permissions: (result[2] as List<Object?>?)!.cast<AttributePermissions>(),
       descriptors: (result[3] as List<Object?>?)?.cast<BleDescriptor>(),
       value: result[4] as Uint8List?,
+      instanceId: result[5] as int?,
     );
   }
 }
@@ -621,7 +626,7 @@ class BlePeripheralChannel {
     }
   }
 
-  Future<void> updateCharacteristic(String characteristicId, Uint8List value, String? deviceId) async {
+  Future<void> updateCharacteristic(String characteristicId, Uint8List value, String? deviceId, int? instanceId) async {
     final String pigeonVar_channelName = 'dev.flutter.pigeon.ble_peripheral.BlePeripheralChannel.updateCharacteristic$pigeonVar_messageChannelSuffix';
     final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
@@ -629,7 +634,7 @@ class BlePeripheralChannel {
       binaryMessenger: pigeonVar_binaryMessenger,
     );
     final List<Object?>? pigeonVar_replyList =
-        await pigeonVar_channel.send(<Object?>[characteristicId, value, deviceId]) as List<Object?>?;
+        await pigeonVar_channel.send(<Object?>[characteristicId, value, deviceId, instanceId]) as List<Object?>?;
     if (pigeonVar_replyList == null) {
       throw _createConnectionError(pigeonVar_channelName);
     } else if (pigeonVar_replyList.length > 1) {
@@ -648,11 +653,11 @@ class BlePeripheralChannel {
 abstract class BleCallback {
   static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
 
-  ReadRequestResult? onReadRequest(String deviceId, String characteristicId, int offset, Uint8List? value);
+  ReadRequestResult? onReadRequest(String deviceId, String characteristicId, int offset, Uint8List? value, int? instanceId);
 
-  WriteRequestResult? onWriteRequest(String deviceId, String characteristicId, int offset, Uint8List? value);
+  WriteRequestResult? onWriteRequest(String deviceId, String characteristicId, int offset, Uint8List? value, int? instanceId);
 
-  void onCharacteristicSubscriptionChange(String deviceId, String characteristicId, bool isSubscribed, String? name);
+  void onCharacteristicSubscriptionChange(String deviceId, String characteristicId, bool isSubscribed, String? name, int? instanceId);
 
   void onAdvertisingStatusUpdate(bool advertising, String? error);
 
@@ -689,8 +694,9 @@ abstract class BleCallback {
           assert(arg_offset != null,
               'Argument for dev.flutter.pigeon.ble_peripheral.BleCallback.onReadRequest was null, expected non-null int.');
           final Uint8List? arg_value = (args[3] as Uint8List?);
+          final int? arg_instanceId = (args[4] as int?);
           try {
-            final ReadRequestResult? output = api.onReadRequest(arg_deviceId!, arg_characteristicId!, arg_offset!, arg_value);
+            final ReadRequestResult? output = api.onReadRequest(arg_deviceId!, arg_characteristicId!, arg_offset!, arg_value, arg_instanceId);
             return wrapResponse(result: output);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);
@@ -721,8 +727,9 @@ abstract class BleCallback {
           assert(arg_offset != null,
               'Argument for dev.flutter.pigeon.ble_peripheral.BleCallback.onWriteRequest was null, expected non-null int.');
           final Uint8List? arg_value = (args[3] as Uint8List?);
+          final int? arg_instanceId = (args[4] as int?);
           try {
-            final WriteRequestResult? output = api.onWriteRequest(arg_deviceId!, arg_characteristicId!, arg_offset!, arg_value);
+            final WriteRequestResult? output = api.onWriteRequest(arg_deviceId!, arg_characteristicId!, arg_offset!, arg_value, arg_instanceId);
             return wrapResponse(result: output);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);
@@ -753,8 +760,9 @@ abstract class BleCallback {
           assert(arg_isSubscribed != null,
               'Argument for dev.flutter.pigeon.ble_peripheral.BleCallback.onCharacteristicSubscriptionChange was null, expected non-null bool.');
           final String? arg_name = (args[3] as String?);
+          final int? arg_instanceId = (args[4] as int?);
           try {
-            api.onCharacteristicSubscriptionChange(arg_deviceId!, arg_characteristicId!, arg_isSubscribed!, arg_name);
+            api.onCharacteristicSubscriptionChange(arg_deviceId!, arg_characteristicId!, arg_isSubscribed!, arg_name, arg_instanceId);
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);

@@ -60,14 +60,16 @@ class BleCharacteristic {
   List<AttributePermissions> permissions;
   List<BleDescriptor>? descriptors;
   Uint8List? value;
+  int? instanceId;
 
   BleCharacteristic(
     this.uuid,
     this.value,
     this.descriptors,
     this.properties,
-    this.permissions,
-  );
+    this.permissions, {
+    this.instanceId,
+  });
 }
 
 class BleDescriptor {
@@ -132,6 +134,7 @@ abstract class BlePeripheralChannel {
     String characteristicId,
     Uint8List value,
     String? deviceId,
+    int? instanceId,
   );
 }
 
@@ -143,6 +146,7 @@ abstract class BleCallback {
     String characteristicId,
     int offset,
     Uint8List? value,
+    int? instanceId,
   );
 
   WriteRequestResult? onWriteRequest(
@@ -150,6 +154,7 @@ abstract class BleCallback {
     String characteristicId,
     int offset,
     Uint8List? value,
+    int? instanceId,
   );
 
   void onCharacteristicSubscriptionChange(
@@ -157,6 +162,7 @@ abstract class BleCallback {
     String characteristicId,
     bool isSubscribed,
     String? name,
+    int? instanceId,
   );
 
   void onAdvertisingStatusUpdate(bool advertising, String? error);

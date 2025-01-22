@@ -64,9 +64,14 @@ class BlePeripheral {
     required String characteristicId,
     required Uint8List value,
     String? deviceId,
+    int? instanceId,
   }) {
     return _platform.updateCharacteristic(
-        characteristicId: characteristicId, value: value, deviceId: deviceId);
+      characteristicId: characteristicId,
+      value: value,
+      deviceId: deviceId,
+      instanceId: instanceId,
+    );
   }
 
   /// Start advertising with the given services and local name
