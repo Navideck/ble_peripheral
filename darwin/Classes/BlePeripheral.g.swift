@@ -156,6 +156,7 @@ struct BleCharacteristic {
   var permissions: [AttributePermissions]
   var descriptors: [BleDescriptor]? = nil
   var value: FlutterStandardTypedData? = nil
+  var instanceId: Int64? = nil
 
 
   // swift-format-ignore: AlwaysUseLowerCamelCase
@@ -165,13 +166,15 @@ struct BleCharacteristic {
     let permissions = pigeonVar_list[2] as! [AttributePermissions]
     let descriptors: [BleDescriptor]? = nilOrValue(pigeonVar_list[3])
     let value: FlutterStandardTypedData? = nilOrValue(pigeonVar_list[4])
+    let instanceId: Int64? = nilOrValue(pigeonVar_list[5])
 
     return BleCharacteristic(
       uuid: uuid,
       properties: properties,
       permissions: permissions,
       descriptors: descriptors,
-      value: value
+      value: value,
+      instanceId: instanceId
     )
   }
   func toList() -> [Any?] {
@@ -181,6 +184,7 @@ struct BleCharacteristic {
       permissions,
       descriptors,
       value,
+      instanceId,
     ]
   }
 }
@@ -401,7 +405,7 @@ protocol BlePeripheralChannel {
   func getServices() throws -> [String]
   func getSubscribedClients() throws -> [SubscribedClient]
   func startAdvertising(services: [String], localName: String?, timeout: Int64?, manufacturerData: ManufacturerData?, addManufacturerDataInScanResponse: Bool) throws
-  func updateCharacteristic(characteristicId: String, value: FlutterStandardTypedData, deviceId: String?) throws
+  func updateCharacteristic(characteristicId: String, value: FlutterStandardTypedData, deviceId: String?, instanceId: Int64?) throws
 }
 
 /// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
@@ -570,8 +574,9 @@ class BlePeripheralChannelSetup {
         let characteristicIdArg = args[0] as! String
         let valueArg = args[1] as! FlutterStandardTypedData
         let deviceIdArg: String? = nilOrValue(args[2])
+        let instanceIdArg: Int64? = nilOrValue(args[3])
         do {
-          try api.updateCharacteristic(characteristicId: characteristicIdArg, value: valueArg, deviceId: deviceIdArg)
+          try api.updateCharacteristic(characteristicId: characteristicIdArg, value: valueArg, deviceId: deviceIdArg, instanceId: instanceIdArg)
           reply(wrapResult(nil))
         } catch {
           reply(wrapError(error))
@@ -586,9 +591,9 @@ class BlePeripheralChannelSetup {
 ///
 /// Generated protocol from Pigeon that represents Flutter messages that can be called from Swift.
 protocol BleCallbackProtocol {
-  func onReadRequest(deviceId deviceIdArg: String, characteristicId characteristicIdArg: String, offset offsetArg: Int64, value valueArg: FlutterStandardTypedData?, completion: @escaping (Result<ReadRequestResult?, PigeonError>) -> Void)
-  func onWriteRequest(deviceId deviceIdArg: String, characteristicId characteristicIdArg: String, offset offsetArg: Int64, value valueArg: FlutterStandardTypedData?, completion: @escaping (Result<WriteRequestResult?, PigeonError>) -> Void)
-  func onCharacteristicSubscriptionChange(deviceId deviceIdArg: String, characteristicId characteristicIdArg: String, isSubscribed isSubscribedArg: Bool, name nameArg: String?, completion: @escaping (Result<Void, PigeonError>) -> Void)
+  func onReadRequest(deviceId deviceIdArg: String, characteristicId characteristicIdArg: String, offset offsetArg: Int64, value valueArg: FlutterStandardTypedData?, instanceId instanceIdArg: Int64?, completion: @escaping (Result<ReadRequestResult?, PigeonError>) -> Void)
+  func onWriteRequest(deviceId deviceIdArg: String, characteristicId characteristicIdArg: String, offset offsetArg: Int64, value valueArg: FlutterStandardTypedData?, instanceId instanceIdArg: Int64?, completion: @escaping (Result<WriteRequestResult?, PigeonError>) -> Void)
+  func onCharacteristicSubscriptionChange(deviceId deviceIdArg: String, characteristicId characteristicIdArg: String, isSubscribed isSubscribedArg: Bool, name nameArg: String?, instanceId instanceIdArg: Int64?, completion: @escaping (Result<Void, PigeonError>) -> Void)
   func onAdvertisingStatusUpdate(advertising advertisingArg: Bool, error errorArg: String?, completion: @escaping (Result<Void, PigeonError>) -> Void)
   func onBleStateChange(state stateArg: Bool, completion: @escaping (Result<Void, PigeonError>) -> Void)
   func onServiceAdded(serviceId serviceIdArg: String, error errorArg: String?, completion: @escaping (Result<Void, PigeonError>) -> Void)
@@ -606,10 +611,10 @@ class BleCallback: BleCallbackProtocol {
   var codec: BlePeripheralPigeonCodec {
     return BlePeripheralPigeonCodec.shared
   }
-  func onReadRequest(deviceId deviceIdArg: String, characteristicId characteristicIdArg: String, offset offsetArg: Int64, value valueArg: FlutterStandardTypedData?, completion: @escaping (Result<ReadRequestResult?, PigeonError>) -> Void) {
+  func onReadRequest(deviceId deviceIdArg: String, characteristicId characteristicIdArg: String, offset offsetArg: Int64, value valueArg: FlutterStandardTypedData?, instanceId instanceIdArg: Int64?, completion: @escaping (Result<ReadRequestResult?, PigeonError>) -> Void) {
     let channelName: String = "dev.flutter.pigeon.ble_peripheral.BleCallback.onReadRequest\(messageChannelSuffix)"
     let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
-    channel.sendMessage([deviceIdArg, characteristicIdArg, offsetArg, valueArg] as [Any?]) { response in
+    channel.sendMessage([deviceIdArg, characteristicIdArg, offsetArg, valueArg, instanceIdArg] as [Any?]) { response in
       guard let listResponse = response as? [Any?] else {
         completion(.failure(createConnectionError(withChannelName: channelName)))
         return
@@ -625,10 +630,10 @@ class BleCallback: BleCallbackProtocol {
       }
     }
   }
-  func onWriteRequest(deviceId deviceIdArg: String, characteristicId characteristicIdArg: String, offset offsetArg: Int64, value valueArg: FlutterStandardTypedData?, completion: @escaping (Result<WriteRequestResult?, PigeonError>) -> Void) {
+  func onWriteRequest(deviceId deviceIdArg: String, characteristicId characteristicIdArg: String, offset offsetArg: Int64, value valueArg: FlutterStandardTypedData?, instanceId instanceIdArg: Int64?, completion: @escaping (Result<WriteRequestResult?, PigeonError>) -> Void) {
     let channelName: String = "dev.flutter.pigeon.ble_peripheral.BleCallback.onWriteRequest\(messageChannelSuffix)"
     let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
-    channel.sendMessage([deviceIdArg, characteristicIdArg, offsetArg, valueArg] as [Any?]) { response in
+    channel.sendMessage([deviceIdArg, characteristicIdArg, offsetArg, valueArg, instanceIdArg] as [Any?]) { response in
       guard let listResponse = response as? [Any?] else {
         completion(.failure(createConnectionError(withChannelName: channelName)))
         return
@@ -644,10 +649,10 @@ class BleCallback: BleCallbackProtocol {
       }
     }
   }
-  func onCharacteristicSubscriptionChange(deviceId deviceIdArg: String, characteristicId characteristicIdArg: String, isSubscribed isSubscribedArg: Bool, name nameArg: String?, completion: @escaping (Result<Void, PigeonError>) -> Void) {
+  func onCharacteristicSubscriptionChange(deviceId deviceIdArg: String, characteristicId characteristicIdArg: String, isSubscribed isSubscribedArg: Bool, name nameArg: String?, instanceId instanceIdArg: Int64?, completion: @escaping (Result<Void, PigeonError>) -> Void) {
     let channelName: String = "dev.flutter.pigeon.ble_peripheral.BleCallback.onCharacteristicSubscriptionChange\(messageChannelSuffix)"
     let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
-    channel.sendMessage([deviceIdArg, characteristicIdArg, isSubscribedArg, nameArg] as [Any?]) { response in
+    channel.sendMessage([deviceIdArg, characteristicIdArg, isSubscribedArg, nameArg, instanceIdArg] as [Any?]) { response in
       guard let listResponse = response as? [Any?] else {
         completion(.failure(createConnectionError(withChannelName: channelName)))
         return

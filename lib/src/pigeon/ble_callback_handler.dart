@@ -37,13 +37,10 @@ class BleCallbackHandler extends BleCallback {
     String characteristicId,
     bool isSubscribed,
     String? name,
+    int? instanceId,
   ) {
     characteristicSubscriptionChange?.call(
-      deviceId,
-      characteristicId,
-      isSubscribed,
-      name,
-    );
+        deviceId, characteristicId, isSubscribed, name, instanceId);
   }
 
   @override
@@ -57,9 +54,11 @@ class BleCallbackHandler extends BleCallback {
     String characteristicId,
     int offset,
     Uint8List? value,
+    int? instanceId,
   ) {
     // Windows crash if return value is null
-    return readRequest?.call(deviceId, characteristicId, offset, value) ??
+    return readRequest?.call(
+            deviceId, characteristicId, offset, value, instanceId) ??
         ReadRequestResult(
           value: Uint8List.fromList([0]),
         );
@@ -73,8 +72,14 @@ class BleCallbackHandler extends BleCallback {
 
   @override
   WriteRequestResult? onWriteRequest(
-      String deviceId, String characteristicId, int offset, Uint8List? value) {
-    return writeRequest?.call(deviceId, characteristicId, offset, value) ??
+    String deviceId,
+    String characteristicId,
+    int offset,
+    Uint8List? value,
+    int? instanceId,
+  ) {
+    return writeRequest?.call(
+            deviceId, characteristicId, offset, value, instanceId) ??
         WriteRequestResult();
   }
 

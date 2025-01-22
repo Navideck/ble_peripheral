@@ -31,6 +31,7 @@ abstract class BlePeripheralInterface {
     required String characteristicId,
     required Uint8List value,
     String? deviceId,
+    int? instanceId,
   });
 
   Future<void> startAdvertising({
@@ -95,17 +96,32 @@ typedef BleStateCallback = void Function(bool state);
 typedef BondStateCallback = void Function(String deviceId, BondState bondState);
 
 typedef CharacteristicSubscriptionChangeCallback = void Function(
-    String deviceId, String characteristicId, bool isSubscribed, String? name);
+  String deviceId,
+  String characteristicId,
+  bool isSubscribed,
+  String? name,
+  int? instanceId,
+);
 
 typedef ConnectionStateChangeCallback = void Function(
     String deviceId, bool connected);
 
 typedef ReadRequestCallback = ReadRequestResult? Function(
-    String deviceId, String characteristicId, int offset, Uint8List? value);
+  String deviceId,
+  String characteristicId,
+  int offset,
+  Uint8List? value,
+  int? instanceId,
+);
 
 typedef ServiceAddedCallback = void Function(String serviceId, String? error);
 
 typedef WriteRequestCallback = WriteRequestResult? Function(
-    String deviceId, String characteristicId, int offset, Uint8List? value);
+  String deviceId,
+  String characteristicId,
+  int offset,
+  Uint8List? value,
+  int? instanceId,
+);
 
 typedef MtuChangeCallback = void Function(String deviceId, int mtu);

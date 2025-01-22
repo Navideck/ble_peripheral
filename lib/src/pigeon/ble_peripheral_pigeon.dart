@@ -85,8 +85,10 @@ class BlePeripheralPigeon extends BlePeripheralInterface {
     required String characteristicId,
     required Uint8List value,
     String? deviceId,
+    int? instanceId,
   }) {
-    return _channel.updateCharacteristic(characteristicId, value, deviceId);
+    return _channel.updateCharacteristic(
+        characteristicId, value, deviceId, instanceId);
   }
 
   /// Start advertising with the given services and local name

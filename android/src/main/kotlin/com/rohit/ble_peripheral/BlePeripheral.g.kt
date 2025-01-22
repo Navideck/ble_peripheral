@@ -149,7 +149,8 @@ data class BleCharacteristic (
   val properties: List<CharacteristicProperties>,
   val permissions: List<AttributePermissions>,
   val descriptors: List<BleDescriptor>? = null,
-  val value: ByteArray? = null
+  val value: ByteArray? = null,
+  val instanceId: Long? = null
 )
  {
   companion object {
@@ -159,7 +160,8 @@ data class BleCharacteristic (
       val permissions = pigeonVar_list[2] as List<AttributePermissions>
       val descriptors = pigeonVar_list[3] as List<BleDescriptor>?
       val value = pigeonVar_list[4] as ByteArray?
-      return BleCharacteristic(uuid, properties, permissions, descriptors, value)
+      val instanceId = pigeonVar_list[5] as Long?
+      return BleCharacteristic(uuid, properties, permissions, descriptors, value, instanceId)
     }
   }
   fun toList(): List<Any?> {
@@ -169,6 +171,7 @@ data class BleCharacteristic (
       permissions,
       descriptors,
       value,
+      instanceId,
     )
   }
 }
@@ -385,7 +388,7 @@ interface BlePeripheralChannel {
   fun getServices(): List<String>
   fun getSubscribedClients(): List<SubscribedClient>
   fun startAdvertising(services: List<String>, localName: String?, timeout: Long?, manufacturerData: ManufacturerData?, addManufacturerDataInScanResponse: Boolean)
-  fun updateCharacteristic(characteristicId: String, value: ByteArray, deviceId: String?)
+  fun updateCharacteristic(characteristicId: String, value: ByteArray, deviceId: String?, instanceId: Long?)
 
   companion object {
     /** The codec used by BlePeripheralChannel. */
@@ -585,8 +588,9 @@ interface BlePeripheralChannel {
             val characteristicIdArg = args[0] as String
             val valueArg = args[1] as ByteArray
             val deviceIdArg = args[2] as String?
+            val instanceIdArg = args[3] as Long?
             val wrapped: List<Any?> = try {
-              api.updateCharacteristic(characteristicIdArg, valueArg, deviceIdArg)
+              api.updateCharacteristic(characteristicIdArg, valueArg, deviceIdArg, instanceIdArg)
               listOf(null)
             } catch (exception: Throwable) {
               wrapError(exception)
@@ -612,12 +616,12 @@ class BleCallback(private val binaryMessenger: BinaryMessenger, private val mess
       BlePeripheralPigeonCodec()
     }
   }
-  fun onReadRequest(deviceIdArg: String, characteristicIdArg: String, offsetArg: Long, valueArg: ByteArray?, callback: (Result<ReadRequestResult?>) -> Unit)
+  fun onReadRequest(deviceIdArg: String, characteristicIdArg: String, offsetArg: Long, valueArg: ByteArray?, instanceIdArg: Long?, callback: (Result<ReadRequestResult?>) -> Unit)
 {
     val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
     val channelName = "dev.flutter.pigeon.ble_peripheral.BleCallback.onReadRequest$separatedMessageChannelSuffix"
     val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
-    channel.send(listOf(deviceIdArg, characteristicIdArg, offsetArg, valueArg)) {
+    channel.send(listOf(deviceIdArg, characteristicIdArg, offsetArg, valueArg, instanceIdArg)) {
       if (it is List<*>) {
         if (it.size > 1) {
           callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
@@ -630,12 +634,12 @@ class BleCallback(private val binaryMessenger: BinaryMessenger, private val mess
       } 
     }
   }
-  fun onWriteRequest(deviceIdArg: String, characteristicIdArg: String, offsetArg: Long, valueArg: ByteArray?, callback: (Result<WriteRequestResult?>) -> Unit)
+  fun onWriteRequest(deviceIdArg: String, characteristicIdArg: String, offsetArg: Long, valueArg: ByteArray?, instanceIdArg: Long?, callback: (Result<WriteRequestResult?>) -> Unit)
 {
     val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
     val channelName = "dev.flutter.pigeon.ble_peripheral.BleCallback.onWriteRequest$separatedMessageChannelSuffix"
     val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
-    channel.send(listOf(deviceIdArg, characteristicIdArg, offsetArg, valueArg)) {
+    channel.send(listOf(deviceIdArg, characteristicIdArg, offsetArg, valueArg, instanceIdArg)) {
       if (it is List<*>) {
         if (it.size > 1) {
           callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
@@ -648,12 +652,12 @@ class BleCallback(private val binaryMessenger: BinaryMessenger, private val mess
       } 
     }
   }
-  fun onCharacteristicSubscriptionChange(deviceIdArg: String, characteristicIdArg: String, isSubscribedArg: Boolean, nameArg: String?, callback: (Result<Unit>) -> Unit)
+  fun onCharacteristicSubscriptionChange(deviceIdArg: String, characteristicIdArg: String, isSubscribedArg: Boolean, nameArg: String?, instanceIdArg: Long?, callback: (Result<Unit>) -> Unit)
 {
     val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
     val channelName = "dev.flutter.pigeon.ble_peripheral.BleCallback.onCharacteristicSubscriptionChange$separatedMessageChannelSuffix"
     val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
-    channel.send(listOf(deviceIdArg, characteristicIdArg, isSubscribedArg, nameArg)) {
+    channel.send(listOf(deviceIdArg, characteristicIdArg, isSubscribedArg, nameArg, instanceIdArg)) {
       if (it is List<*>) {
         if (it.size > 1) {
           callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))

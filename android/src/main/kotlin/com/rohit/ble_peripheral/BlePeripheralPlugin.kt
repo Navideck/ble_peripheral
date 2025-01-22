@@ -36,7 +36,6 @@ private const val TAG = "BlePeripheralPlugin"
 
 @SuppressLint("MissingPermission")
 class BlePeripheralPlugin : FlutterPlugin, BlePeripheralChannel, ActivityAware {
-    // PluginRegistry.ActivityResultListener {
     private val requestCodeBluetoothPermission = 0xa1c
     private var bleCallback: BleCallback? = null
     private val requestCodeBluetoothEnablePermission = 0xb1e
@@ -47,7 +46,8 @@ class BlePeripheralPlugin : FlutterPlugin, BlePeripheralChannel, ActivityAware {
     private var bluetoothLeAdvertiser: BluetoothLeAdvertiser? = null
     private var gattServer: BluetoothGattServer? = null
     private val bluetoothDevicesMap: MutableMap<String, BluetoothDevice> = HashMap()
-    private val subscribedCharDevicesMap: MutableMap<String, MutableList<String>> = HashMap()
+    private val subscribedCharDevicesMap: MutableMap<String, MutableList<BluetoothGattCharacteristic>> =
+        HashMap()
     private val emptyBytes = byteArrayOf()
     private val listOfDevicesWaitingForBond = mutableListOf<String>()
     private var isAdvertising: Boolean? = null
@@ -108,7 +108,11 @@ class BlePeripheralPlugin : FlutterPlugin, BlePeripheralChannel, ActivityAware {
     }
 
     override fun getSubscribedClients(): List<SubscribedClient> {
-        return subscribedCharDevicesMap.map { data -> SubscribedClient(data.key, data.value) }
+        return subscribedCharDevicesMap.map { data ->
+            SubscribedClient(
+                data.key,
+                data.value.map { it.uuid.toString() })
+        }
     }
 
     override fun startAdvertising(
@@ -183,9 +187,10 @@ class BlePeripheralPlugin : FlutterPlugin, BlePeripheralChannel, ActivityAware {
         characteristicId: String,
         value: ByteArray,
         deviceId: String?,
+        instanceId: Long?,
     ) {
         val char =
-            characteristicId.findCharacteristic() ?: throw Exception("Characteristic not found")
+            characteristicId.findCharacteristic(instanceId) ?: throw Exception("Characteristic not found")
         char.value = value
         if (deviceId != null) {
             val device = bluetoothDevicesMap[deviceId] ?: throw Exception("Device not found")
@@ -238,17 +243,17 @@ class BlePeripheralPlugin : FlutterPlugin, BlePeripheralChannel, ActivityAware {
 
     private fun cleanConnection(device: BluetoothDevice) {
         val deviceAddress = device.address
-
         // Notify char unsubscribe event on disconnect
-        val subscribedCharUUID: MutableList<String> =
+        val subscribedCharUUID: MutableList<BluetoothGattCharacteristic> =
             subscribedCharDevicesMap[deviceAddress] ?: mutableListOf()
-        subscribedCharUUID.forEach { charUUID ->
+        subscribedCharUUID.forEach { char ->
             handler?.post {
                 bleCallback?.onCharacteristicSubscriptionChange(
                     deviceAddress,
-                    charUUID,
+                    char.uuid.toString(),
                     false,
-                    device.name
+                    device.name,
+                    char.instanceId.toGivenInstanceId()
                 ) {}
             }
         }
@@ -342,6 +347,7 @@ class BlePeripheralPlugin : FlutterPlugin, BlePeripheralChannel, ActivityAware {
                         characteristicIdArg = characteristic.uuid.toString(),
                         offsetArg = offset.toLong(),
                         valueArg = characteristic.value,
+                        instanceIdArg = characteristic.instanceId.toGivenInstanceId()
                     ) { it: Result<ReadRequestResult?> ->
                         val readRequestResult: ReadRequestResult? = it.getOrNull()
                         if (readRequestResult == null) {
@@ -389,6 +395,7 @@ class BlePeripheralPlugin : FlutterPlugin, BlePeripheralChannel, ActivityAware {
                         characteristicIdArg = characteristic.uuid.toString(),
                         offsetArg = offset.toLong(),
                         valueArg = value,
+                        instanceIdArg = characteristic.instanceId.toGivenInstanceId()
                     ) {
                         val writeResult: WriteRequestResult? = it.getOrNull()
                         gattServer?.sendResponse(
@@ -472,28 +479,31 @@ class BlePeripheralPlugin : FlutterPlugin, BlePeripheralChannel, ActivityAware {
                                 || BluetoothGattDescriptor.ENABLE_INDICATION_VALUE.contentEquals(
                             value
                         )
-                    val characteristicId = descriptor.characteristic.uuid.toString()
+                    val characteristic = descriptor.characteristic
+                    val characteristicId = characteristic.uuid.toString()
                     device?.address?.let {
                         handler?.post {
                             bleCallback?.onCharacteristicSubscriptionChange(
                                 it,
                                 characteristicId,
                                 isSubscribed,
-                                device.name
+                                device.name,
+                                instanceIdArg = descriptor.characteristic.instanceId.toGivenInstanceId()
                             ) {}
                         }
 
                         // Update subscribed char list
                         val charList = subscribedCharDevicesMap[it] ?: mutableListOf()
 
+                        val item: BluetoothGattCharacteristic? =
+                            charList.find { c -> c.uuid.toString() == characteristicId && c.instanceId == characteristic.instanceId }
+
                         if (isSubscribed) {
-                            if (!charList.contains(characteristicId)) {
-                                charList.add(characteristicId)
+                            if (item == null) {
+                                charList.add(characteristic)
                             }
-                        } else if (charList.contains(characteristicId)) {
-                            if (charList.contains(characteristicId)) {
-                                charList.remove(characteristicId)
-                            }
+                        } else if (item != null) {
+                            charList.remove(item)
                         }
 
                         if (charList.isEmpty()) {
@@ -645,13 +655,4 @@ class BlePeripheralPlugin : FlutterPlugin, BlePeripheralChannel, ActivityAware {
         }
         return false
     }
-
-//    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
-//        if (requestCode == requestCodeBluetoothPermission) {
-//            Log.d(TAG, "onActivityResultForBlePermission: ${resultCode == Activity.RESULT_OK}")
-//        } else if (requestCode == requestCodeBluetoothEnablePermission) {
-//            Log.d(TAG, "onActivityResultForBleEnable: ${resultCode == Activity.RESULT_OK}")
-//        }
-//        return false
-//    }
 }

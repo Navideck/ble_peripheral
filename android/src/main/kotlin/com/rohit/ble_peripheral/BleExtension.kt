@@ -11,9 +11,16 @@ import java.lang.Exception
 import java.util.Collections
 import java.util.UUID
 
-private val bluetoothGattCharacteristics: MutableMap<String, BluetoothGattCharacteristic> =
-    HashMap()
+data class BleCharCache(
+    val uuid: String,
+    val instanceId: Int?,
+    val char: BluetoothGattCharacteristic,
+)
+
+private val bluetoothGattCharacteristics: MutableList<BleCharCache> = mutableListOf()
 private val descriptorValueReadMap: MutableMap<String, ByteArray> =
+    HashMap()
+private val instanceIdMap: MutableMap<Int, Int> =
     HashMap()
 const val descriptorCCUUID = "00002902-0000-1000-8000-00805f9b34fb"
 
@@ -51,6 +58,12 @@ fun BleCharacteristic.toGattCharacteristic(): BluetoothGattCharacteristic {
         properties.toPropertiesList(),
         permissions.toPermissionsList()
     )
+
+    // Store instance Id in map to identify
+    instanceId?.let {
+        instanceIdMap[char.instanceId] = it.toInt()
+    }
+
     value?.let {
         char.value = it
     }
@@ -62,9 +75,24 @@ fun BleCharacteristic.toGattCharacteristic(): BluetoothGattCharacteristic {
 
     addCCDescriptorIfRequired(this, char)
 
-    if (bluetoothGattCharacteristics[uuid] == null) {
-        bluetoothGattCharacteristics[uuid] = char
+
+    if (instanceId == null) {
+        // Then all good, make sure only one char exists
+        if (bluetoothGattCharacteristics.any { it.uuid == char.uuid.toString() }) {
+            throw FlutterError(code = "Failed", message = "Char already exists")
+        }
+        bluetoothGattCharacteristics.add(BleCharCache(uuid, null, char))
+    } else {
+        // Make sure this instanceId does not exists
+        if (bluetoothGattCharacteristics.any { it.uuid == char.uuid.toString() && it.instanceId == instanceId.toInt() }) {
+            throw FlutterError(
+                code = "Failed",
+                message = "Char already exists with this instance id"
+            )
+        }
+        bluetoothGattCharacteristics.add(BleCharCache(uuid, instanceId.toInt(), char))
     }
+
     return char
 }
 
@@ -123,14 +151,17 @@ fun BleDescriptor.toGattDescriptor(): BluetoothGattDescriptor {
     return descriptor
 }
 
-fun String.findCharacteristic(): BluetoothGattCharacteristic? {
-    return bluetoothGattCharacteristics[this]
+fun String.findCharacteristic(instanceId: Long?): BluetoothGattCharacteristic? {
+    if (instanceId != null) {
+        return bluetoothGattCharacteristics.find { it.uuid == this && instanceId.toInt() == it.instanceId }?.char
+    }
+    return bluetoothGattCharacteristics.find { it.uuid == this }?.char
 }
 
 fun String.findService(): BluetoothGattService? {
-    for (char in bluetoothGattCharacteristics.values) {
-        if (char.service?.uuid.toString() == this) {
-            return char.service
+    for (char in bluetoothGattCharacteristics) {
+        if (char.char.service?.uuid.toString() == this) {
+            return char.char.service
         }
     }
     return null
@@ -175,4 +206,8 @@ fun Int.toBondState(): BondState {
         BluetoothDevice.BOND_NONE -> BondState.NONE
         else -> BondState.NONE
     }
+}
+
+fun Int.toGivenInstanceId(): Long? {
+    return instanceIdMap[this]?.toLong()
 }

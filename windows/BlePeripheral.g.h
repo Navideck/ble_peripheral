@@ -161,7 +161,8 @@ class BleCharacteristic {
     const flutter::EncodableList& properties,
     const flutter::EncodableList& permissions,
     const flutter::EncodableList* descriptors,
-    const std::vector<uint8_t>* value);
+    const std::vector<uint8_t>* value,
+    const int64_t* instance_id);
 
   const std::string& uuid() const;
   void set_uuid(std::string_view value_arg);
@@ -180,6 +181,10 @@ class BleCharacteristic {
   void set_value(const std::vector<uint8_t>* value_arg);
   void set_value(const std::vector<uint8_t>& value_arg);
 
+  const int64_t* instance_id() const;
+  void set_instance_id(const int64_t* value_arg);
+  void set_instance_id(int64_t value_arg);
+
 
  private:
   static BleCharacteristic FromEncodableList(const flutter::EncodableList& list);
@@ -192,6 +197,7 @@ class BleCharacteristic {
   flutter::EncodableList permissions_;
   std::optional<flutter::EncodableList> descriptors_;
   std::optional<std::vector<uint8_t>> value_;
+  std::optional<int64_t> instance_id_;
 
 };
 
@@ -381,7 +387,8 @@ class BlePeripheralChannel {
   virtual std::optional<FlutterError> UpdateCharacteristic(
     const std::string& characteristic_id,
     const std::vector<uint8_t>& value,
-    const std::string* device_id) = 0;
+    const std::string* device_id,
+    const int64_t* instance_id) = 0;
 
   // The codec used by BlePeripheralChannel.
   static const flutter::StandardMessageCodec& GetCodec();
@@ -415,6 +422,7 @@ class BleCallback {
     const std::string& characteristic_id,
     int64_t offset,
     const std::vector<uint8_t>* value,
+    const int64_t* instance_id,
     std::function<void(const ReadRequestResult*)>&& on_success,
     std::function<void(const FlutterError&)>&& on_error);
   void OnWriteRequest(
@@ -422,6 +430,7 @@ class BleCallback {
     const std::string& characteristic_id,
     int64_t offset,
     const std::vector<uint8_t>* value,
+    const int64_t* instance_id,
     std::function<void(const WriteRequestResult*)>&& on_success,
     std::function<void(const FlutterError&)>&& on_error);
   void OnCharacteristicSubscriptionChange(
@@ -429,6 +438,7 @@ class BleCallback {
     const std::string& characteristic_id,
     bool is_subscribed,
     const std::string* name,
+    const int64_t* instance_id,
     std::function<void(void)>&& on_success,
     std::function<void(const FlutterError&)>&& on_error);
   void OnAdvertisingStatusUpdate(
